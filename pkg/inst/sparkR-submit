@@ -7,7 +7,7 @@ FWDIR="$(cd `dirname $0`; pwd)"
 
 export PROJECT_HOME="$FWDIR"
 
-export SPARKR_JAR_FILE="$FWDIR/lib/SparkR/sparkr-assembly-0.1.jar"
+export SPARKR_JAR_FILE="$FWDIR/sparkr-assembly-0.1.jar"
 
 # Exit if the user hasn't set SPARK_HOME 
 if [ ! -f "$SPARK_HOME/bin/spark-submit" ]; then
