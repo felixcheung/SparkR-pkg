@@ -2,6 +2,8 @@ package edu.berkeley.cs.amplab.sparkr
 
 import java.io._
 import java.net.URI
+import java.util.concurrent.Semaphore
+import java.util.concurrent.TimeUnit
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConversions._
@@ -17,6 +19,9 @@ object SparkRRunner {
     val rFile = args(0)
 
     val otherArgs = args.slice(1, args.length)
+
+    // Time to wait for SparkR backend to initialize in seconds
+    val backendTimeout = sys.env.getOrElse("SPARKR_BACKEND_TIMEOUT", "120").toInt
     // TODO: Can we get this from SparkConf ?
     val sparkRBackendPort = sys.env.getOrElse("SPARKR_BACKEND_PORT", "12345").toInt
     val rCommand = "Rscript"
@@ -35,8 +40,11 @@ object SparkRRunner {
     // Java system properties etc.
     val sparkRBackend = new SparkRBackend()
     val sparkRBackendThread = new Thread() {
+      val finishedInit = new Semaphore(0)
+
       override def run() {
         sparkRBackend.init(sparkRBackendPort)
+        finishedInit.release()
         sparkRBackend.run()
       }
 
@@ -46,19 +54,27 @@ object SparkRRunner {
     }
 
     sparkRBackendThread.start()
+    // Wait for SparkRBackend initialization to finish
+    if (sparkRBackendThread.finishedInit.tryAcquire(backendTimeout, TimeUnit.SECONDS)) {
+      // Launch R
+      val returnCode = try {
+        val builder = new ProcessBuilder(Seq(rCommand, rFileNormalized) ++ otherArgs)
+        val env = builder.environment()
+        env.put("EXISTING_SPARKR_BACKEND_PORT", sparkRBackendPort.toString)
+        builder.redirectErrorStream(true) // Ugly but needed for stdout and stderr to synchronize
+        val process = builder.start()
 
-    // Launch R
-    val builder = new ProcessBuilder(Seq(rCommand, rFileNormalized) ++ otherArgs)
-    val env = builder.environment()
-    env.put("SPARKR_BACKEND_PORT", "" + sparkRBackendPort)
-    builder.redirectErrorStream(true) // Ugly but needed for stdout and stderr to synchronize
-    val process = builder.start()
+        new RedirectThread(process.getInputStream, System.out, "redirect output").start()
 
-    new RedirectThread(process.getInputStream, System.out, "redirect output").start()
-
-    val returnCode = process.waitFor()
-    sparkRBackendThread.stopBackend()
-    System.exit(returnCode)
+        process.waitFor()
+      } finally {
+        sparkRBackendThread.stopBackend()
+      }
+      System.exit(returnCode)
+    } else {
+      System.err.println("SparkR backend did not initialize in " + backendTimeout + " seconds")
+      System.exit(-1)
+    }
   }
 
   private class RedirectThread(
