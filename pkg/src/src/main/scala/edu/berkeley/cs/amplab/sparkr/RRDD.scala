@@ -352,7 +352,8 @@ object RRDD {
 
     // Override `master` if we have a user-specified value
     if (master != "") {
-      sparkConf.setMaster(master)
+      // Avoid setting master again for the submit to cluster case.
+      sparkConf.setIfMissing("spark.master", master)
     } else {
       // If conf has no master set it to "local" to maintain
       // backwards compatibility

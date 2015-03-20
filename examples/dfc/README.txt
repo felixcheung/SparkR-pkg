@@ -6,7 +6,7 @@ install.packages("svd")
 You are now ready to run our implementation of DFC with SparkR! 
 Type the following into the command line:
 
-./SparkR DFC.R <master>[<slices>] <slices> <masked_matrix> <iter> <rand>
+./SparkR DFC.R <master> [<slices>] <masked_matrix> <iter> [<rand>]
 
 	<masked_matrix> Should be in matrix market format. We have included
 					a sample matrix file, called "example.mat", which is a

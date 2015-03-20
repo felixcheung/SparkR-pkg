@@ -161,9 +161,9 @@ sparkR-submit is installed with the SparkR package. By default, it can be found 
 
 For example, to run on YARN (CDH 5.3.0),
 ```
-export SPARK_HOME=/opt/cloudera/parcels/CDH-5.3.0-1.cdh5.3.0.p0.30/lib/spark
-export YARN_CONF_DIR=/etc/hadoop/conf
-export JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera
+SPARK_HOME=/opt/cloudera/parcels/CDH-5.3.0-1.cdh5.3.0.p0.30/lib/spark \
+YARN_CONF_DIR=/etc/hadoop/conf \
+JAVA_HOME=/usr/java/jdk1.7.0_67-cloudera \
 /usr/lib64/R/library/SparkR/sparkR-submit --master yarn-client examples/pi.R yarn-client 4
 ```
 
